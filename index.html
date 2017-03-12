@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <script src="http://cdn.bootcss.com/socket.io/1.7.3/socket.io.min.js"></script>
+  <style>
+    .talkList{
+      font-size: 12px;
+      padding: 10px;
+    }
+  </style>
+  <title>demo</title>
+</head>
+
+<body>
+  <input type="text"  id='roomid' placeholder="房间ID"/><br>
+  <input type="text"  id='userName' placeholder="名字" /><br>
+  <button onclick='join()'>登陆</button>
+  <button onclick='out()'>退出</button><br><br><br><br>
+  <input type="text"  id='talk' placeholder="发言"  />
+  <button onclick='talkFunc()'>退出</button><br>
+  <div id='talkList' class='talkList'></div>
+  <script>
+    var inputText = document.getElementById('roomid')
+    var userName = document.getElementById('userName')
+    var talk = document.getElementById('talk')
+    var talkList = document.getElementById('talkList')
+    var listDom = ''
+    var roomid,username,textContent
+    var socket
+    var listDomPush = function(text){
+      listDom = listDom + text + '<br>'
+      talkList.innerHTML = listDom
+    }
+    var join = function() {
+      roomid = inputText.value
+      if(roomid.length >= 3 && !isNaN(roomid)){
+        socket = io('http://localhost:8080/?id='+roomid, {
+          "reconnection": true,
+          transports: ['websocket', "xhr-polling"]
+        })
+        socket.on("connect", function() {
+          username = userName.value
+          listDomPush("本地信息："+username+'正在加入房间'+roomid)
+          socket.emit('join',username)
+        })
+        socket.on("join", function() {})
+        socket.on("system", function(value){
+          listDomPush("系统信息："+value)
+        })
+        socket.on("talk", function(content,name){
+          listDomPush(name+":"+content)
+        })
+        socket.on("disconnect", function() {})
+      }
+    }
+    var out = function(){
+      socket.emit('leave')
+    }
+    var talkFunc = function(){
+      textContent = talk.value
+      if(textContent != ''){
+        socket.emit('talk',textContent,username)
+        listDomPush("自己:"+textContent)
+        talk.value = ''
+      }
+    }
+  </script>
+</body>
+
+</html>
